@@ -6,8 +6,6 @@ from random import uniform
 myKod = '164-417-424 61'
 ball = 234
 
-
-
 def dataFromSite (soup):
     paragraph = (soup.find("p").get_text(separator=" ").replace('\n', '')).split('. ')[2::]
     paragraph = [*(paragraph[0].split('- ')[1::]), paragraph[1], paragraph[2]]
@@ -29,7 +27,8 @@ def calculatePriority(priority):
         if i == len(priority)-1:
             priorityString = priorityString +str(i)+' - '+ str(priority[i])
     return priorityString
-urls = ['https://technolog.edu.ru/content/alists/04.03.01_Химия_Бюджетная_Основа_Очная',
+urls = [
+        'https://technolog.edu.ru/content/alists/04.03.01_Химия_Бюджетная_Основа_Очная',
         'https://technolog.edu.ru/content/alists/08.03.01_Строительство_Бюджетная%20основа',
         'https://technolog.edu.ru/content/alists/09.03.00_Информатика%20и%20вычислительная%20техника%20очная_Бюджетная%20основа',
         'https://technolog.edu.ru/content/alists/15.03.00_Машиностроение_Бюджетная%20основа%20Очная',
@@ -49,14 +48,18 @@ myUrls = [
             'https://technolog.edu.ru/content/alists/15.03.00_Машиностроение_Бюджетная%20основа%20Очная',
             'https://technolog.edu.ru/content/alists/15.05.01_Проектирование%20технологических%20машин%20и%20комплексов_Специалитет_Бюджетная%20основа',
         ]
+notCheckEnemies = [
+            'https://technolog.edu.ru/content/alists/08.03.01_Строительство_Бюджетная%20основа',
+            'https://technolog.edu.ru/content/alists/15.03.00_Машиностроение_Бюджетная%20основа%20Очная',
+            'https://technolog.edu.ru/content/alists/15.05.01_Проектирование%20технологических%20машин%20и%20комплексов_Специалитет_Бюджетная%20основа',
+]
 bigMass = []
-
-
-
 
 def checkEnemy(kodOfEnemy, enemyPriority, nameFrom, urlFrom):
     urlsCopy = urls.copy()
     urlsCopy.remove(urlFrom)
+    nowPriority = 10
+    strochkakka =  ''
     for urlEnemy in urlsCopy:
         response = requests.get(urlEnemy)
         soup = BeautifulSoup(response.content, "html.parser")
@@ -64,23 +67,18 @@ def checkEnemy(kodOfEnemy, enemyPriority, nameFrom, urlFrom):
         res = dataFromSite(soup)
         placeNum = res[0]
         name = res[1]
-        flag = False
         try:
             for row in table.find_all("tr"):
                 row_data = []
                 for cell in row.find_all(["td", "th"]):
                     row_data.append(cell.text)
                 try:
-                    # sleep(.5)
                     if int(row_data[0]) < placeNum:
-                        if str(row_data[1])==str(kodOfEnemy) and name != nameFrom and str(row_data[-5]) < str(enemyPriority):
-                            try:
-                                with open("logs.txt", "a", encoding="utf-8") as file:
-                                    strochkakka =  str(nameFrom) + str(name) + '. Код этого енеми: '+str(kodOfEnemy) + '. Его был приоритет: ' + str(enemyPriority)+ '. Его Место: ' + str(row_data[0]) + '. Его тут приоритет: ' + str(row_data[-5])
-                                    file.write(strochkakka + "\n")
-                                print(strochkakka)
-                            except:
-                                # print('errer')
+                        if str(row_data[1])==str(kodOfEnemy) and name != nameFrom and str(row_data[-5]) < str(enemyPriority) and int(row_data[-5]) < nowPriority:
+                            nowPriority = int(row_data[-5])
+                            strochkakka =  str(nameFrom) + ' > '+str(name) + '. Код этого енеми: '+str(kodOfEnemy) + '. Его был приоритет: ' + str(enemyPriority)+ '. Его Место: ' + str(row_data[0]) + '. Его тут приоритет: ' + str(row_data[-5])
+                            print(kodOfEnemy + '. ' + strochkakka)
+                            if int(row_data[-5]) == 1:
                                 break
                     else:
                         break
@@ -91,6 +89,15 @@ def checkEnemy(kodOfEnemy, enemyPriority, nameFrom, urlFrom):
             print('Ошибка с сединением') 
         delay = uniform(.1, .5)  # Генерация случайной задержки между 1, 2.0
         sleep(delay)
+    if len(strochkakka):
+        with open("logs.txt", "a", encoding="utf-8") as file:
+            file.write(strochkakka + "\n")
+            print(strochkakka)
+    else:
+        errorMassage = 'Произошла ошибка'
+        with open("logs.txt", "a", encoding="utf-8") as file:
+            file.write(errorMassage+ '. ' + kodOfEnemy, + '. ' + errorMassage +strochkakka+ "\n")
+            print(strochkakka)
     return
 
 def entedRowData(urlLLL, soup):
@@ -106,8 +113,8 @@ def entedRowData(urlLLL, soup):
             row_data.append(cell.text)
         try:
             data.append(row_data)
-            # if int(row_data[-5]) > 1 and len(dataAboutMe) == 0:
-                # checkEnemy(row_data[1], row_data[-5], name, urlLLL)
+            if int(row_data[-5]) > 1 and len(dataAboutMe) == 0 and urlLLL not in notCheckEnemies:
+                checkEnemy(row_data[1], row_data[-5], name, urlLLL)
             priority[int(row_data[-5])] += 1
             if row_data[1] == myKod:
                 dataAboutMe = row_data
@@ -116,7 +123,6 @@ def entedRowData(urlLLL, soup):
             continue
     priorityString = calculatePriority(priority)
     return [data, name, placeNum, priorityString, dataAboutMe]
-
 
 
 bigData = []
@@ -128,12 +134,22 @@ for url in myUrls:
     data, name, placeNum, priorityString, dataAboutMe = entedRowData(url, soup)
     for n in range(len(data)):
         row = data[n]
-        if int(row[0]) == placeNum and len(dataAboutMe) > 0:
-            string = name +  '. моё место: '+ str(dataAboutMe[0]) + ' из ' + str(row[0]) + '. Минимальный балл: ' + str(row[2]) + '. Приоритет других: ' + priorityString 
-            bigData.append(string)
-        elif int(row[0]) == placeNum :
-            bigData.append('Не прошёл. '+ name + ' Минимальный балл: ' + str(row[2]) )
+        try:
+            if int(row[0]) == int(dataAboutMe[0]) and len(dataAboutMe) > 0:
+                string = name +  '. моё место: '+ str(dataAboutMe[0]) + ' из ' + str(placeNum) + '. Минимальный балл: ' + str(row[2]) + '. Приоритет других: ' + priorityString 
+                bigData.append(string)
+            elif int(row[0]) == placeNum :
+                bigData.append('Не прошёл. '+ name + ' Минимальный балл: ' + str(row[2]) )
+        except:
+            # print('Хедер таблицы')
+            continue
 
+with open("logs.txt", "a", encoding="utf-8") as file:
+    file.write('-'*90 + "\n")
 for m in bigData:
-    print(str(m))
     print('-'*90)
+    print(str(m))
+    with open("logs.txt", "a", encoding="utf-8") as file:
+        file.write(str(m) + "\n")
+        file.write('-'*90 + "\n")
+        print()

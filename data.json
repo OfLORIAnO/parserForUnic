@@ -1,0 +1,20 @@
+[
+    {
+        "id": "09.03.00",
+        "availablePlaces": 20,
+        "data": [
+            {
+                "id": "193-898-287 54",
+                "place": 5,
+                "score": 250,
+                "priority": 1
+            },
+            {
+                "id": "193-898-287 54",
+                "place": 5,
+                "score": 250,
+                "priority": 1
+            }
+        ]
+    }
+]
